@@ -202,6 +202,19 @@
             font-size: 18px;
             z-index: 300;
         }
+        
+        /* 错误提示 */
+        #error-msg {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            color: #ff4444;
+            font-size: 16px;
+            z-index: 300;
+            text-align: center;
+            display: none;
+        }
     </style>
 </head>
 <body>
@@ -233,6 +246,7 @@
     </div>
     
     <div id="loading">Loading 3D Model...</div>
+    <div id="error-msg"></div>
 
     <script src="https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/three@0.160.0/examples/js/controls/OrbitControls.js"></script>
@@ -243,7 +257,7 @@
         const aircraftData = {
             no: urlParams.get('no') || 'B-4680',
             model: urlParams.get('model') || 'Airbus A320neo',
-            inDate: urlParams.get('inDate') || '2025-04-06',
+            inDate: urlParams.get('inDate') || '',
             parts: [
                 { name: '驾驶舱', status: 'complete', detail: '航电系统检查已完成，仪表显示正常' },
                 { name: '发动机-左', status: 'repair', detail: 'CFM LEAP-1A发动机叶片损伤修复，预计工期15天' },
@@ -282,51 +296,64 @@
         let aircraft, markers = [];
         
         function init() {
-            // 场景
-            scene = new THREE.Scene();
-            scene.background = new THREE.Color(0x000510);
-            
-            // 相机
-            camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 1000);
-            camera.position.set(8, 5, 10);
-            
-            // 渲染器
-            renderer = new THREE.WebGLRenderer({ antialias: true });
-            renderer.setSize(window.innerWidth, window.innerHeight);
-            renderer.setPixelRatio(window.devicePixelRatio);
-            document.getElementById('canvas-container').appendChild(renderer.domElement);
-            
-            // 控制器
-            controls = new THREE.OrbitControls(camera, renderer.domElement);
-            controls.enableDamping = true;
-            controls.dampingFactor = 0.05;
-            controls.minDistance = 5;
-            controls.maxDistance = 30;
-            
-            // 灯光
-            const ambientLight = new THREE.AmbientLight(0xffffff, 0.3);
-            scene.add(ambientLight);
-            
-            const directionalLight = new THREE.DirectionalLight(0xffffff, 0.7);
-            directionalLight.position.set(10, 10, 10);
-            scene.add(directionalLight);
-            
-            // 创建飞机模型
-            createAircraft();
-            
-            // 创建网格地面
-            createGrid();
-            
-            // 隐藏加载提示
-            document.getElementById('loading').style.display = 'none';
-            
-            // 窗口大小调整
-            window.addEventListener('resize', onWindowResize);
-            
-            // 鼠标点击检测
-            renderer.domElement.addEventListener('click', onMouseClick);
-            
-            animate();
+            try {
+                // 检查Three.js是否加载
+                if (typeof THREE === 'undefined') {
+                    throw new Error('Three.js库加载失败，请检查网络连接');
+                }
+                
+                // 场景
+                scene = new THREE.Scene();
+                scene.background = new THREE.Color(0x000510);
+                
+                // 相机
+                camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 1000);
+                camera.position.set(8, 5, 10);
+                
+                // 渲染器
+                renderer = new THREE.WebGLRenderer({ antialias: true });
+                renderer.setSize(window.innerWidth, window.innerHeight);
+                renderer.setPixelRatio(window.devicePixelRatio);
+                document.getElementById('canvas-container').appendChild(renderer.domElement);
+                
+                // 控制器
+                controls = new THREE.OrbitControls(camera, renderer.domElement);
+                controls.enableDamping = true;
+                controls.dampingFactor = 0.05;
+                controls.minDistance = 5;
+                controls.maxDistance = 30;
+                
+                // 灯光
+                const ambientLight = new THREE.AmbientLight(0xffffff, 0.3);
+                scene.add(ambientLight);
+                
+                const directionalLight = new THREE.DirectionalLight(0xffffff, 0.7);
+                directionalLight.position.set(10, 10, 10);
+                scene.add(directionalLight);
+                
+                // 创建飞机模型
+                createAircraft();
+                
+                // 创建网格地面
+                createGrid();
+                
+                // 隐藏加载提示
+                document.getElementById('loading').style.display = 'none';
+                
+                // 窗口大小调整
+                window.addEventListener('resize', onWindowResize);
+                
+                // 鼠标点击检测
+                renderer.domElement.addEventListener('click', onMouseClick);
+                
+                animate();
+            } catch (error) {
+                console.error('初始化失败:', error);
+                document.getElementById('loading').style.display = 'none';
+                const errorDiv = document.getElementById('error-msg');
+                errorDiv.innerHTML = '3D模型加载失败<br><small>' + error.message + '</small>';
+                errorDiv.style.display = 'block';
+            }
         }
         
         function createAircraft() {
@@ -552,8 +579,26 @@
         
         function formatDate(dateStr) {
             if (!dateStr) return '待定';
-            const date = new Date(dateStr);
-            return `${date.getFullYear()}年${String(date.getMonth() + 1).padStart(2, '0')}月${String(date.getDate()).padStart(2, '0')}日`;
+            
+            // 支持时间戳（数字或字符串）和日期字符串
+            let date;
+            if (/^\d+$/.test(dateStr)) {
+                // 纯数字，当作时间戳处理
+                date = new Date(parseInt(dateStr));
+            } else {
+                // 其他格式，直接解析
+                date = new Date(dateStr);
+            }
+            
+            // 检查日期是否有效
+            if (isNaN(date.getTime())) {
+                return '待定';
+            }
+            
+            const year = date.getFullYear();
+            const month = String(date.getMonth() + 1).padStart(2, '0');
+            const day = String(date.getDate()).padStart(2, '0');
+            return `${year}年${month}月${day}日`;
         }
         
         function onWindowResize() {
@@ -579,8 +624,18 @@
             renderer.render(scene, camera);
         }
         
-        // 初始化
-        init();
+        // 等待Three.js加载完成后初始化
+        function waitForThreeJS() {
+            if (typeof THREE !== 'undefined') {
+                init();
+            } else {
+                // 如果Three.js还没加载完，等待100ms后重试
+                setTimeout(waitForThreeJS, 100);
+            }
+        }
+        
+        // 启动
+        waitForThreeJS();
         
         // 暴露给父页面的接口
         window.setAircraftData = function(data) {
