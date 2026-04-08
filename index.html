@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>3D Aircraft CAD Viewer</title>
+    <title>Airbus A320 3D Viewer | 国航飞机维修系统</title>
     <style>
         * {
             margin: 0;
@@ -12,9 +12,9 @@
         }
         
         body {
-            background: #000;
+            background: #0a0a1a;
             overflow: hidden;
-            font-family: 'Courier New', monospace;
+            font-family: 'Segoe UI', 'Microsoft YaHei', sans-serif;
         }
         
         #canvas-container {
@@ -22,137 +22,176 @@
             height: 100vh;
         }
         
-        /* 信息面板 */
         #info-panel {
             position: fixed;
             top: 20px;
             left: 20px;
-            color: #00d4ff;
-            font-size: 14px;
+            color: #fff;
+            font-size: 13px;
             z-index: 100;
-            background: rgba(0, 0, 0, 0.7);
-            padding: 15px;
+            background: rgba(10, 20, 40, 0.9);
+            padding: 20px;
             border: 1px solid #00d4ff;
-            border-radius: 4px;
-            min-width: 200px;
+            border-radius: 8px;
+            min-width: 240px;
+            box-shadow: 0 0 20px rgba(0, 212, 255, 0.3);
         }
         
         #info-panel h3 {
-            margin-bottom: 10px;
-            font-size: 16px;
-            color: #fff;
-            border-bottom: 1px solid #00d4ff;
-            padding-bottom: 5px;
+            margin-bottom: 12px;
+            font-size: 14px;
+            color: #00d4ff;
+            border-bottom: 1px solid rgba(0, 212, 255, 0.3);
+            padding-bottom: 8px;
+            letter-spacing: 2px;
         }
         
         #info-panel .aircraft-no {
-            font-size: 20px;
+            font-size: 28px;
             color: #fff;
             margin-bottom: 5px;
+            font-weight: bold;
+            letter-spacing: 3px;
         }
         
         #info-panel .model {
             color: #00d4ff;
-            margin-bottom: 10px;
+            margin-bottom: 15px;
+            font-size: 16px;
         }
         
-        /* 维修部位列表 */
+        #info-panel .meta-info {
+            font-size: 12px;
+            color: rgba(255,255,255,0.7);
+            line-height: 1.8;
+        }
+        
+        #info-panel .meta-info span {
+            color: #fff;
+        }
+        
+        #info-panel .status-badge {
+            display: inline-block;
+            padding: 4px 12px;
+            border-radius: 4px;
+            font-size: 11px;
+            margin-top: 10px;
+            font-weight: bold;
+        }
+        
+        #info-panel .status-badge.repair {
+            background: rgba(255, 68, 68, 0.3);
+            color: #ff6b6b;
+            border: 1px solid #ff4444;
+        }
+        
+        #info-panel .status-badge.complete {
+            background: rgba(68, 255, 68, 0.3);
+            color: #6bff6b;
+            border: 1px solid #44ff44;
+        }
+        
         #parts-list {
             position: fixed;
             top: 20px;
             right: 20px;
-            color: #00d4ff;
+            color: #fff;
             font-size: 12px;
             z-index: 100;
-            background: rgba(0, 0, 0, 0.7);
-            padding: 15px;
+            background: rgba(10, 20, 40, 0.9);
+            padding: 20px;
             border: 1px solid #00d4ff;
-            border-radius: 4px;
-            max-height: 400px;
+            border-radius: 8px;
+            max-height: 500px;
             overflow-y: auto;
+            min-width: 220px;
+            box-shadow: 0 0 20px rgba(0, 212, 255, 0.3);
         }
         
         #parts-list h4 {
-            margin-bottom: 10px;
-            font-size: 14px;
-            color: #fff;
-            border-bottom: 1px solid #00d4ff;
-            padding-bottom: 5px;
+            margin-bottom: 15px;
+            font-size: 13px;
+            color: #00d4ff;
+            border-bottom: 1px solid rgba(0, 212, 255, 0.3);
+            padding-bottom: 8px;
+            letter-spacing: 1px;
         }
         
         .part-item {
             display: flex;
             align-items: center;
-            margin-bottom: 8px;
-            padding: 5px;
-            border-radius: 3px;
+            margin-bottom: 10px;
+            padding: 8px 10px;
+            border-radius: 6px;
             cursor: pointer;
-            transition: background 0.3s;
+            transition: all 0.3s;
+            border: 1px solid transparent;
         }
         
         .part-item:hover {
-            background: rgba(0, 212, 255, 0.2);
+            background: rgba(0, 212, 255, 0.1);
+            border-color: rgba(0, 212, 255, 0.3);
         }
         
         .part-item .dot {
-            width: 12px;
-            height: 12px;
+            width: 10px;
+            height: 10px;
             border-radius: 50%;
-            margin-right: 10px;
+            margin-right: 12px;
             animation: pulse 1.5s infinite;
         }
         
         .part-item .dot.repair {
             background: #ff4444;
-            box-shadow: 0 0 10px #ff4444;
+            box-shadow: 0 0 8px #ff4444;
         }
         
         .part-item .dot.complete {
             background: #44ff44;
-            box-shadow: 0 0 10px #44ff44;
+            box-shadow: 0 0 8px #44ff44;
         }
         
         .part-item .name {
             color: #fff;
-            margin-right: 10px;
+            flex: 1;
         }
         
         .part-item .status {
             font-size: 10px;
-            padding: 2px 6px;
+            padding: 3px 8px;
             border-radius: 3px;
         }
         
         .part-item .status.repair {
-            background: rgba(255, 68, 68, 0.3);
+            background: rgba(255, 68, 68, 0.2);
             color: #ff6b6b;
         }
         
         .part-item .status.complete {
-            background: rgba(68, 255, 68, 0.3);
+            background: rgba(68, 255, 68, 0.2);
             color: #6bff6b;
         }
         
         @keyframes pulse {
             0%, 100% { opacity: 1; transform: scale(1); }
-            50% { opacity: 0.6; transform: scale(1.2); }
+            50% { opacity: 0.5; transform: scale(1.3); }
         }
         
-        /* 详情弹窗 */
         #detail-popup {
             position: fixed;
-            bottom: 20px;
+            bottom: 30px;
             left: 50%;
             transform: translateX(-50%);
-            background: rgba(0, 20, 40, 0.95);
-            border: 2px solid #00d4ff;
-            border-radius: 8px;
-            padding: 20px;
+            background: rgba(10, 25, 50, 0.95);
+            border: 1px solid #00d4ff;
+            border-radius: 10px;
+            padding: 25px;
             color: #fff;
             z-index: 200;
             display: none;
-            min-width: 300px;
-            box-shadow: 0 0 30px rgba(0, 212, 255, 0.5);
+            min-width: 350px;
+            max-width: 500px;
+            box-shadow: 0 0 40px rgba(0, 212, 255, 0.4);
         }
         
         #detail-popup.show {
@@ -167,43 +206,92 @@
         
         #detail-popup h4 {
             color: #00d4ff;
-            margin-bottom: 10px;
+            margin-bottom: 15px;
             font-size: 18px;
+            border-bottom: 1px solid rgba(0, 212, 255, 0.3);
+            padding-bottom: 10px;
         }
         
         #detail-popup .close-btn {
             position: absolute;
-            top: 10px;
-            right: 10px;
+            top: 15px;
+            right: 15px;
             background: none;
             border: none;
             color: #00d4ff;
-            font-size: 20px;
+            font-size: 24px;
             cursor: pointer;
+            opacity: 0.7;
+            transition: opacity 0.3s;
         }
         
-        /* 控制提示 */
+        #detail-popup .close-btn:hover {
+            opacity: 1;
+        }
+        
+        #detail-popup .popup-status {
+            display: inline-block;
+            padding: 5px 15px;
+            border-radius: 4px;
+            font-size: 12px;
+            margin-bottom: 15px;
+            font-weight: bold;
+        }
+        
+        #detail-popup .popup-status.repair {
+            background: rgba(255, 68, 68, 0.3);
+            color: #ff6b6b;
+        }
+        
+        #detail-popup .popup-status.complete {
+            background: rgba(68, 255, 68, 0.3);
+            color: #6bff6b;
+        }
+        
+        #detail-popup .detail-content {
+            font-size: 13px;
+            line-height: 1.8;
+            color: rgba(255,255,255,0.9);
+        }
+        
         #controls-hint {
             position: fixed;
             bottom: 20px;
             right: 20px;
-            color: rgba(255, 255, 255, 0.5);
+            color: rgba(255, 255, 255, 0.4);
             font-size: 11px;
             z-index: 100;
+            text-align: right;
+            line-height: 1.6;
         }
         
-        /* 加载动画 */
         #loading {
             position: fixed;
             top: 50%;
             left: 50%;
             transform: translate(-50%, -50%);
             color: #00d4ff;
-            font-size: 18px;
+            font-size: 16px;
             z-index: 300;
+            text-align: center;
         }
         
-        /* 错误提示 */
+        #loading::after {
+            content: '';
+            display: block;
+            width: 40px;
+            height: 40px;
+            margin: 20px auto;
+            border: 2px solid #00d4ff;
+            border-top-color: transparent;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+        
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+        
         #error-msg {
             position: fixed;
             top: 50%;
@@ -214,74 +302,108 @@
             z-index: 300;
             text-align: center;
             display: none;
+            background: rgba(0,0,0,0.9);
+            padding: 30px;
+            border-radius: 8px;
+            border: 1px solid #ff4444;
+        }
+        
+        #version-tag {
+            position: fixed;
+            top: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            color: rgba(0, 212, 255, 0.6);
+            font-size: 12px;
+            z-index: 100;
+            letter-spacing: 3px;
         }
     </style>
 </head>
 <body>
     <div id="canvas-container"></div>
     
+    <div id="version-tag">AIRBUS A320 3D MODEL v2.0</div>
+    
     <div id="info-panel">
-        <h3>◆ AIRCRAFT INFO</h3>
+        <h3>◆ AIRCRAFT INFORMATION</h3>
         <div class="aircraft-no" id="aircraft-no">B-4680</div>
-        <div class="model" id="aircraft-model">Airbus A320neo</div>
-        <div style="font-size: 11px; color: rgba(255,255,255,0.6); margin-top: 10px;">
-            IN: <span id="in-date">2025年04月06日</span><br>
-            STATUS: <span style="color: #ff6b6b;">维修中</span>
+        <div class="model" id="aircraft-model">Airbus A320-200</div>
+        <div class="meta-info">
+            MSN: <span id="msn">4521</span><br>
+            ENGINE: <span id="engine">CFM56-5B4/3</span><br>
+            IN DATE: <span id="in-date">2025年04月06日</span><br>
+            OUT DATE: <span id="out-date">2025年04月20日</span>
         </div>
+        <div class="status-badge repair" id="status-badge">维修中</div>
     </div>
     
     <div id="parts-list">
-        <h4>◆ MAINTENANCE PARTS</h4>
+        <h4>◆ MAINTENANCE CHECKLIST</h4>
         <div id="parts-container"></div>
     </div>
     
     <div id="detail-popup">
         <button class="close-btn" onclick="closePopup()">×</button>
-        <h4 id="popup-title">发动机-左</h4>
-        <div id="popup-content"></div>
+        <h4 id="popup-title">部件名称</h4>
+        <div class="popup-status repair" id="popup-status">维修中</div>
+        <div class="detail-content" id="popup-content"></div>
     </div>
     
     <div id="controls-hint">
-        🖱️ 拖拽旋转 | 滚轮缩放 | 点击标记查看详情
+        🖱️ 左键拖拽旋转<br>
+        🖱️ 滚轮缩放<br>
+        👆 点击标记查看详情
     </div>
     
-    <div id="loading">Loading 3D Model...</div>
+    <div id="loading">Loading Airbus A320 3D Model...</div>
     <div id="error-msg"></div>
 
-    <!-- Three.js 核心库 (使用稳定版本 0.137.0) -->
     <script src="https://cdn.jsdelivr.net/npm/three@0.137.0/build/three.min.js"></script>
-    <!-- OrbitControls 控制器 -->
     <script src="https://cdn.jsdelivr.net/npm/three@0.137.0/examples/js/controls/OrbitControls.js"></script>
     
     <script>
-        // 飞机数据（从URL参数获取或使用默认值）
         const urlParams = new URLSearchParams(window.location.search);
         const aircraftData = {
             no: urlParams.get('no') || 'B-4680',
-            model: urlParams.get('model') || 'Airbus A320neo',
+            model: urlParams.get('model') || 'Airbus A320-200',
+            msn: urlParams.get('msn') || '4521',
+            engine: urlParams.get('engine') || 'CFM56-5B4/3',
             inDate: urlParams.get('inDate') || '',
+            outDate: urlParams.get('outDate') || '',
             parts: [
-                { name: '驾驶舱', status: 'complete', detail: '航电系统检查已完成，仪表显示正常' },
-                { name: '发动机-左', status: 'repair', detail: 'CFM LEAP-1A发动机叶片损伤修复，预计工期15天' },
-                { name: '发动机-右', status: 'repair', detail: '发动机常规检修中，更换高压涡轮叶片' },
-                { name: '左机翼', status: 'repair', detail: '机翼前缘蒙皮更换，预计工期7天' },
-                { name: '右机翼', status: 'complete', detail: '机翼结构检查已完成，无异常' },
-                { name: '水平尾翼', status: 'complete', detail: '水平尾翼配平检查完成' },
-                { name: '垂直尾翼', status: 'complete', detail: '垂直尾翼方向舵检查完成' },
-                { name: '前起落架', status: 'repair', detail: '前起落架缓冲器更换，预计工期5天' },
-                { name: '主起落架', status: 'repair', detail: '主起落架刹车组件更换，预计工期8天' },
-                { name: 'APU', status: 'complete', detail: '辅助动力装置检查完成' }
+                { name: '驾驶舱', status: 'complete', detail: '航电系统全面检查完成。PFD/ND显示器测试正常，FMC软件已更新至最新版本。' },
+                { name: '左发动机', status: 'repair', detail: 'CFM56-5B发动机高压涡轮叶片更换。发现第3级涡轮叶片有轻微裂纹，已更换新件。' },
+                { name: '右发动机', status: 'repair', detail: '发动机常规C检进行中。已完成风扇叶片检查、燃烧室目视检查。' },
+                { name: '左机翼', status: 'repair', detail: '机翼前缘缝翼滑轨更换。发现滑轨轴承磨损超标，已更换新件。' },
+                { name: '右机翼', status: 'complete', detail: '机翼结构检查已完成。襟翼、副翼、扰流板作动筒功能正常。' },
+                { name: '水平尾翼', status: 'complete', detail: '升降舵和水平安定面检查完成。THS作动筒功能测试正常。' },
+                { name: '垂直尾翼', "snippet": "创建A320版本2的HTML文件第一部分"}
+</invoke>                { name: '垂直尾翼', status: 'complete', detail: '方向舵和垂直安定面检查完成。方向舵作动筒功能测试正常。' },
+                { name: '前起落架', status: 'repair', detail: '前起落架减震支柱封圈更换。发现支柱漏油，已更换O型封圈并充氮气。' },
+                { name: '主起落架', status: 'repair', detail: '主起落架刹车组件和轮胎更换。刹车磨损指示器已接近极限。' },
+                { name: 'APU', status: 'complete', detail: 'APU APS3200例行检查完成。启动系统、发电系统、引气系统功能正常。' }
             ]
         };
-        
-        // 更新信息面板
+
         document.getElementById('aircraft-no').textContent = aircraftData.no;
         document.getElementById('aircraft-model').textContent = aircraftData.model;
+        document.getElementById('msn').textContent = aircraftData.msn;
+        document.getElementById('engine').textContent = aircraftData.engine;
         document.getElementById('in-date').textContent = formatDate(aircraftData.inDate);
-        
-        // 渲染维修部位列表
+        document.getElementById('out-date').textContent = formatDate(aircraftData.outDate);
+
+        const repairCount = aircraftData.parts.filter(p => p.status === 'repair').length;
+        const statusBadge = document.getElementById('status-badge');
+        if (repairCount === 0) {
+            statusBadge.textContent = '已完成';
+            statusBadge.className = 'status-badge complete';
+        } else {
+            statusBadge.textContent = `维修中 (${repairCount}/10)`;
+        }
+
         const partsContainer = document.getElementById('parts-container');
-        aircraftData.parts.forEach((part, index) => {
+        aircraftData.parts.forEach((part) => {
             const div = document.createElement('div');
             div.className = 'part-item';
             div.innerHTML = `
@@ -292,62 +414,59 @@
             div.onclick = () => showPartDetail(part);
             partsContainer.appendChild(div);
         });
-        
-        // Three.js 场景
+
         let scene, camera, renderer, controls;
         let aircraft, markers = [];
-        
+
         function init() {
             try {
-                // 检查Three.js是否加载
                 if (typeof THREE === 'undefined') {
                     throw new Error('Three.js库加载失败，请检查网络连接');
                 }
-                
-                // 场景
+
                 scene = new THREE.Scene();
-                scene.background = new THREE.Color(0x000510);
-                
-                // 相机
-                camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 1000);
-                camera.position.set(8, 5, 10);
-                
-                // 渲染器
-                renderer = new THREE.WebGLRenderer({ antialias: true });
+                scene.background = new THREE.Color(0x0a0a1a);
+                scene.fog = new THREE.Fog(0x0a0a1a, 20, 60);
+
+                camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 1000);
+                camera.position.set(12, 8, 12);
+
+                renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
                 renderer.setSize(window.innerWidth, window.innerHeight);
                 renderer.setPixelRatio(window.devicePixelRatio);
+                renderer.shadowMap.enabled = true;
+                renderer.shadowMap.type = THREE.PCFSoftShadowMap;
                 document.getElementById('canvas-container').appendChild(renderer.domElement);
-                
-                // 控制器
+
                 controls = new THREE.OrbitControls(camera, renderer.domElement);
                 controls.enableDamping = true;
                 controls.dampingFactor = 0.05;
-                controls.minDistance = 5;
-                controls.maxDistance = 30;
-                
-                // 灯光
-                const ambientLight = new THREE.AmbientLight(0xffffff, 0.3);
+                controls.minDistance = 8;
+                controls.maxDistance = 40;
+                controls.maxPolarAngle = Math.PI / 2 - 0.1;
+
+                const ambientLight = new THREE.AmbientLight(0xffffff, 0.4);
                 scene.add(ambientLight);
-                
-                const directionalLight = new THREE.DirectionalLight(0xffffff, 0.7);
-                directionalLight.position.set(10, 10, 10);
+
+                const directionalLight = new THREE.DirectionalLight(0xffffff, 0.8);
+                directionalLight.position.set(10, 20, 10);
+                directionalLight.castShadow = true;
+                directionalLight.shadow.mapSize.width = 2048;
+                directionalLight.shadow.mapSize.height = 2048;
                 scene.add(directionalLight);
-                
-                // 创建飞机模型
-                createAircraft();
-                
-                // 创建网格地面
-                createGrid();
-                
-                // 隐藏加载提示
+
+                const fillLight = new THREE.DirectionalLight(0x00d4ff, 0.3);
+                fillLight.position.set(-10, 10, -10);
+                scene.add(fillLight);
+
+                createA320();
+                createGround();
+
                 document.getElementById('loading').style.display = 'none';
-                
-                // 窗口大小调整
+
                 window.addEventListener('resize', onWindowResize);
-                
-                // 鼠标点击检测
                 renderer.domElement.addEventListener('click', onMouseClick);
-                
+
                 animate();
             } catch (error) {
                 console.error('初始化失败:', error);
@@ -357,134 +476,267 @@
                 errorDiv.style.display = 'block';
             }
         }
-        
-        function createAircraft() {
+
+        function createA320() {
             aircraft = new THREE.Group();
-            
-            // CAD线框材质
+
+            const fuselageMaterial = new THREE.MeshPhongMaterial({
+                color: 0xe8e8e8,
+                shininess: 30,
+                specular: 0x111111
+            });
+
+            const wingMaterial = new THREE.MeshPhongMaterial({
+                color: 0xd0d0d0,
+                shininess: 40,
+                specular: 0x222222
+            });
+
+            const engineMaterial = new THREE.MeshPhongMaterial({
+                color: 0x888888,
+                shininess: 60
+            });
+
+            const cockpitMaterial = new THREE.MeshPhongMaterial({
+                color: 0x1a1a2e,
+                shininess: 80,
+                transparent: true,
+                opacity: 0.9
+            });
+
+            const gearMaterial = new THREE.MeshPhongMaterial({
+                color: 0x333333,
+                shininess: 20
+            });
+
             const wireframeMaterial = new THREE.MeshBasicMaterial({
                 color: 0x00d4ff,
                 wireframe: true,
                 transparent: true,
-                opacity: 0.8
+                opacity: 0.15
             });
-            
-            const solidMaterial = new THREE.MeshPhongMaterial({
-                color: 0x1a1a2e,
-                emissive: 0x0a0a15,
-                transparent: true,
-                opacity: 0.6,
-                side: THREE.DoubleSide
-            });
-            
-            // 机身 - 圆柱体
-            const fuselageGeometry = new THREE.CylinderGeometry(0.5, 0.5, 6, 16);
-            const fuselage = new THREE.Mesh(fuselageGeometry, solidMaterial);
+
+            // 机身
+            const fuselageLength = 7.5;
+            const fuselageRadius = 0.4;
+
+            const fuselageGeo = new THREE.CylinderGeometry(fuselageRadius, fuselageRadius, fuselageLength, 32);
+            const fuselage = new THREE.Mesh(fuselageGeo, fuselageMaterial);
             fuselage.rotation.x = Math.PI / 2;
-            fuselage.position.z = 0;
+            fuselage.castShadow = true;
+            fuselage.receiveShadow = true;
             aircraft.add(fuselage);
-            
-            const fuselageWire = new THREE.Mesh(fuselageGeometry, wireframeMaterial);
+
+            const fuselageWire = new THREE.Mesh(fuselageGeo, wireframeMaterial);
             fuselageWire.rotation.x = Math.PI / 2;
-            fuselageWire.position.z = 0;
             aircraft.add(fuselageWire);
-            
-            // 驾驶舱 - 锥形
-            const noseGeometry = new THREE.ConeGeometry(0.5, 1.5, 16);
-            const nose = new THREE.Mesh(noseGeometry, solidMaterial);
-            nose.rotation.x = -Math.PI / 2;
-            nose.position.z = 3.5;
+
+            // 机头
+            const noseGeo = new THREE.SphereGeometry(fuselageRadius, 32, 16, 0, Math.PI * 2, 0, Math.PI / 2);
+            const nose = new THREE.Mesh(noseGeo, fuselageMaterial);
+            nose.scale.set(1, 1, 2.5);
+            nose.position.z = fuselageLength / 2 + 0.4;
+            nose.castShadow = true;
             aircraft.add(nose);
-            
-            const noseWire = new THREE.Mesh(noseGeometry, wireframeMaterial);
-            noseWire.rotation.x = -Math.PI / 2;
-            noseWire.position.z = 3.5;
-            aircraft.add(noseWire);
-            
-            // 尾部锥形
-            const tailGeometry = new THREE.ConeGeometry(0.5, 1, 16);
-            const tail = new THREE.Mesh(tailGeometry, solidMaterial);
-            tail.rotation.x = Math.PI / 2;
-            tail.position.z = -3.5;
-            aircraft.add(tail);
-            
-            const tailWire = new THREE.Mesh(tailGeometry, wireframeMaterial);
-            tailWire.rotation.x = Math.PI / 2;
-            tailWire.position.z = -3.5;
-            aircraft.add(tailWire);
-            
-            // 主机翼 - 扁平盒子
-            const wingGeometry = new THREE.BoxGeometry(8, 0.1, 1.5);
-            const wing = new THREE.Mesh(wingGeometry, solidMaterial);
-            wing.position.y = 0.1;
-            aircraft.add(wing);
-            
-            const wingWire = new THREE.Mesh(wingGeometry, wireframeMaterial);
-            wingWire.position.y = 0.1;
-            aircraft.add(wingWire);
-            
+
+            // 驾驶舱窗户
+            const cockpitGeo = new THREE.SphereGeometry(fuselageRadius * 0.98, 32, 16, 0, Math.PI * 2, 0, Math.PI / 3);
+            const cockpit = new THREE.Mesh(cockpitGeo, cockpitMaterial);
+            cockpit.scale.set(1, 0.8, 2);
+            cockpit.position.z = fuselageLength / 2 + 0.35;
+            cockpit.position.y = fuselageRadius * 0.3;
+            aircraft.add(cockpit);
+
+            // 机尾锥形
+            const tailConeGeo = new THREE.CylinderGeometry(fuselageRadius * 0.9, fuselageRadius, 1.2, 32);
+            const tailCone = new THREE.Mesh(tailConeGeo, fuselageMaterial);
+            tailCone.rotation.x = Math.PI / 2;
+            tailCone.position.z = -fuselageLength / 2 - 0.6;
+            tailCone.castShadow = true;
+            aircraft.add(tailCone);
+
+            // 机翼
+            const wingSpan = 7.2;
+            const wingChord = 1.2;
+
+            const leftWingShape = new THREE.Shape();
+            leftWingShape.moveTo(0, 0);
+            leftWingShape.lineTo(wingChord, 0.3);
+            leftWingShape.lineTo(wingChord * 0.3, wingSpan / 2);
+            leftWingShape.lineTo(-0.2, wingSpan / 2 - 0.3);
+            leftWingShape.lineTo(0, 0);
+
+            const wingExtrudeSettings = { depth: 0.08, bevelEnabled: false };
+            const leftWingGeo = new THREE.ExtrudeGeometry(leftWingShape, wingExtrudeSettings);
+            const leftWing = new THREE.Mesh(leftWingGeo, wingMaterial);
+            leftWing.rotation.x = Math.PI / 2;
+            leftWing.rotation.z = -0.05;
+            leftWing.position.set(-0.3, 0, 0.3);
+            leftWing.castShadow = true;
+            leftWing.receiveShadow = true;
+            aircraft.add(leftWing);
+
+            const rightWing = leftWing.clone();
+            rightWing.scale.x = -1;
+            rightWing.position.set(0.3, 0, 0.3);
+            aircraft.add(rightWing);
+
             // 垂直尾翼
-            const vTailGeometry = new THREE.BoxGeometry(0.1, 1.5, 1);
-            const vTail = new THREE.Mesh(vTailGeometry, solidMaterial);
-            vTail.position.set(0, 0.75, -3);
-            aircraft.add(vTail);
-            
-            const vTailWire = new THREE.Mesh(vTailGeometry, wireframeMaterial);
-            vTailWire.position.set(0, 0.75, -3);
-            aircraft.add(vTailWire);
-            
+            const vStabShape = new THREE.Shape();
+            vStabShape.moveTo(0, 0);
+            vStabShape.lineTo(0.8, 0);
+            vStabShape.lineTo(0.3, 1.6);
+            vStabShape.lineTo(-0.1, 1.6);
+            vStabShape.lineTo(0, 0);
+
+            const vStabGeo = new THREE.ExtrudeGeometry(vStabShape, { depth: 0.12, bevelEnabled: false });
+            const vStab = new THREE.Mesh(vStabGeo, wingMaterial);
+            vStab.position.set(0, 0.3, -3);
+            vStab.rotation.y = -0.2;
+            vStab.castShadow = true;
+            aircraft.add(vStab);
+
             // 水平尾翼
-            const hTailGeometry = new THREE.BoxGeometry(2.5, 0.08, 0.8);
-            const hTail = new THREE.Mesh(hTailGeometry, solidMaterial);
-            hTail.position.set(0, 0, -3);
-            aircraft.add(hTail);
-            
-            const hTailWire = new THREE.Mesh(hTailGeometry, wireframeMaterial);
-            hTailWire.position.set(0, 0, -3);
-            aircraft.add(hTailWire);
-            
-            // 发动机 - 左
-            const engineGeometry = new THREE.CylinderGeometry(0.25, 0.3, 1.2, 12);
-            const engineL = new THREE.Mesh(engineGeometry, solidMaterial);
-            engineL.rotation.x = Math.PI / 2;
-            engineL.position.set(-2, -0.3, 0.5);
-            aircraft.add(engineL);
-            
-            const engineLWire = new THREE.Mesh(engineGeometry, wireframeMaterial);
-            engineLWire.rotation.x = Math.PI / 2;
-            engineLWire.position.set(-2, -0.3, 0.5);
-            aircraft.add(engineLWire);
-            
-            // 发动机 - 右
-            const engineR = new THREE.Mesh(engineGeometry, solidMaterial);
-            engineR.rotation.x = Math.PI / 2;
-            engineR.position.set(2, -0.3, 0.5);
-            aircraft.add(engineR);
-            
-            const engineRWire = new THREE.Mesh(engineGeometry, wireframeMaterial);
-            engineRWire.rotation.x = Math.PI / 2;
-            engineRWire.position.set(2, -0.3, 0.5);
-            aircraft.add(engineRWire);
-            
-            // 添加维修部位标记点
+            const hStabSpan = 2.4;
+            const hStabChord = 0.7;
+
+            const leftHStabShape = new THREE.Shape();
+            leftHStabShape.moveTo(0, 0);
+            leftHStabShape.lineTo(hStabChord, 0.15);
+            leftHStabShape.lineTo(hStabChord * 0.4, hStabSpan / 2);
+            leftHStabShape.lineTo(-0.1, hStabSpan / 2 - 0.2);
+            leftHStabShape.lineTo(0, 0);
+
+            const hStabGeo = new THREE.ExtrudeGeometry(leftHStabShape, { depth: 0.06, bevelEnabled: false });
+            const leftHStab = new THREE.Mesh(hStabGeo, wingMaterial);
+            leftHStab.rotation.x = Math.PI / 2;
+            leftHStab.position.set(-0.1, 0.15, -3.2);
+            leftHStab.castShadow = true;
+            aircraft.add(leftHStab);
+
+            const rightHStab = leftHStab.clone();
+            rightHStab.scale.x = -1;
+            rightHStab.position.set(0.1, 0.15, -3.2);
+            aircraft.add(rightHStab);
+
+            // 发动机
+            const engineLength = 1.4;
+            const engineRadius = 0.28;
+
+            function createEngine(x, y, z) {
+                const engineGroup = new THREE.Group();
+
+                const casingGeo = new THREE.CylinderGeometry(engineRadius, engineRadius * 0.85, engineLength, 24);
+                const casing = new THREE.Mesh(casingGeo, engineMaterial);
+                casing.rotation.x = Math.PI / 2;
+                casing.castShadow = true;
+                engineGroup.add(casing);
+
+                const intakeGeo = new THREE.TorusGeometry(engineRadius * 0.95, 0.03, 8, 24);
+                const intake = new THREE.Mesh(intakeGeo, new THREE.MeshPhongMaterial({ color: 0x333333 }));
+                intake.position.z = engineLength / 2;
+                engineGroup.add(intake);
+
+                const nozzleGeo = new THREE.CylinderGeometry(engineRadius * 0.85, engineRadius * 0.6, 0.3, 24);
+                const nozzle = new THREE.Mesh(nozzleGeo, new THREE.MeshPhongMaterial({ color: 0x555555 }));
+                nozzle.rotation.x = Math.PI / 2;
+                nozzle.position.z = -engineLength / 2 - 0.15;
+                engineGroup.add(nozzle);
+
+                const pylonGeo = new THREE.BoxGeometry(0.08, 0.4, 0.3);
+                const pylon = new THREE.Mesh(pylonGeo, wingMaterial);
+                pylon.position.y = engineRadius + 0.2;
+                pylon.position.z = 0.2;
+                engineGroup.add(pylon);
+
+                engineGroup.position.set(x, y, z);
+                return engineGroup;
+            }
+
+            const leftEngine = createEngine(-1.8, -0.5, 0.2);
+            aircraft.add(leftEngine);
+
+            const rightEngine = createEngine(1.8, -0.5, 0.2);
+            aircraft.add(rightEngine);
+
+            // 起落架
+            function createLandingGear() {
+                const gearGroup = new THREE.Group();
+
+                // 前起落架
+                const noseGearStrut = new THREE.Mesh(
+                    new THREE.CylinderGeometry(0.04, 0.04, 0.8, 8),
+                    gearMaterial
+                );
+                noseGearStrut.position.set(0, -0.8, 2.2);
+                gearGroup.add(noseGearStrut);
+
+                const noseWheel = new THREE.Mesh(
+                    new THREE.CylinderGeometry(0.15, 0.15, 0.1, 16),
+                    new THREE.MeshPhongMaterial({ color: 0x222222 })
+                );
+                noseWheel.rotation.z = Math.PI / 2;
+                noseWheel.position.set(0, -1.2, 2.2);
+                gearGroup.add(noseWheel);
+
+                // 主起落架 - 左侧
+                const mainGearStrutL = new THREE.Mesh(
+                    new THREE.CylinderGeometry(0.06, 0.06, 1, 8),
+                    gearMaterial
+                );
+                mainGearStrutL.position.set(-0.6, -0.9, -0.3);
+                gearGroup.add(mainGearStrutL);
+
+                const mainWheelL1 = new THREE.Mesh(
+                    new THREE.CylinderGeometry(0.22, 0.22, 0.15, 16),
+                    new THREE.MeshPhongMaterial({ color: 0x222222 })
+                );
+                mainWheelL1.rotation.z = Math.PI / 2;
+                mainWheelL1.position.set(-0.6, -1.4, -0.1);
+                gearGroup.add(mainWheelL1);
+
+                const mainWheelL2 = mainWheelL1.clone();
+                mainWheelL2.position.set(-0.6, -1.4, -0.5);
+                gearGroup.add(mainWheelL2);
+
+                // 主起落架 - 右侧
+                const mainGearStrutR = mainGearStrutL.clone();
+                mainGearStrutR.position.set(0.6, -0.9, -0.3);
+                gearGroup.add(mainGearStrutR);
+
+                const mainWheelR1 = mainWheelL1.clone();
+                mainWheelR1.position.set(0.6, -1.4, -0.1);
+                gearGroup.add(mainWheelR1);
+
+                const mainWheelR2 = mainWheelL2.clone();
+                mainWheelR2.position.set(0.6, -1.4, -0.5);
+                gearGroup.add(mainWheelR2);
+
+                return gearGroup;
+            }
+
+            const landingGear = createLandingGear();
+            aircraft.add(landingGear);
+
+            // 添加维修标记点
             createMarkers();
-            
+
             scene.add(aircraft);
         }
-        
+
         function createMarkers() {
             const markerPositions = [
-                { name: '驾驶舱', pos: [0, 0.5, 3], status: 'complete' },
-                { name: '发动机-左', pos: [-2, -0.3, 0.5], status: 'repair' },
-                { name: '发动机-右', pos: [2, -0.3, 0.5], status: 'repair' },
-                { name: '左机翼', pos: [-3, 0.1, 0], status: 'repair' },
-                { name: '右机翼', pos: [3, 0.1, 0], status: 'complete' },
-                { name: '水平尾翼', pos: [0, 0, -3], status: 'complete' },
-                { name: '垂直尾翼', pos: [0, 1, -3], status: 'complete' },
-                { name: '前起落架', pos: [0, -0.5, 2.5], status: 'repair' },
-                { name: '主起落架', pos: [0, -0.5, -0.5], status: 'repair' }
+                { name: '驾驶舱', pos: [0, 0.6, 3.2], status: 'complete' },
+                { name: '左发动机', pos: [-1.8, -0.5, 0.2], status: 'repair' },
+                { name: '右发动机', pos: [1.8, -0.5, 0.2], status: 'repair' },
+                { name: '左机翼', pos: [-3.5, 0.1, 0.5], status: 'repair' },
+                { name: '右机翼', pos: [3.5, 0.1, 0.5], status: 'complete' },
+                { name: '水平尾翼', pos: [0, 0.2, -3.2], status: 'complete' },
+                { name: '垂直尾翼', pos: [0, 1.5, -2.8], status: 'complete' },
+                { name: '前起落架', pos: [0, -1.2, 2.2], status: 'repair' },
+                { name: '主起落架', pos: [0, -1.4, -0.3], status: 'repair' }
             ];
-            
+
             markerPositions.forEach(m => {
                 const part = aircraftData.parts.find(p => p.name === m.name);
                 if (part) {
@@ -494,12 +746,11 @@
                 }
             });
         }
-        
+
         function createMarker(position, status, name) {
             const group = new THREE.Group();
-            
-            // 球体标记
-            const geometry = new THREE.SphereGeometry(0.15, 16, 16);
+
+            const geometry = new THREE.SphereGeometry(0.12, 16, 16);
             const color = status === 'repair' ? 0xff4444 : 0x44ff44;
             const material = new THREE.MeshBasicMaterial({
                 color: color,
@@ -508,9 +759,8 @@
             });
             const sphere = new THREE.Mesh(geometry, material);
             group.add(sphere);
-            
-            // 发光效果
-            const glowGeometry = new THREE.SphereGeometry(0.25, 16, 16);
+
+            const glowGeometry = new THREE.SphereGeometry(0.22, 16, 16);
             const glowMaterial = new THREE.MeshBasicMaterial({
                 color: color,
                 transparent: true,
@@ -518,36 +768,61 @@
             });
             const glow = new THREE.Mesh(glowGeometry, glowMaterial);
             group.add(glow);
-            
+
+            // 脉冲环
+            const ringGeometry = new THREE.RingGeometry(0.25, 0.3, 32);
+            const ringMaterial = new THREE.MeshBasicMaterial({
+                color: color,
+                transparent: true,
+                opacity: 0.5,
+                side: THREE.DoubleSide
+            });
+            const ring = new THREE.Mesh(ringGeometry, ringMaterial);
+            ring.lookAt(camera.position);
+            group.add(ring);
+
             group.position.set(...position);
-            group.userData = { name: name, status: status };
-            
-            // 动画
+            group.userData = { name: name, status: status, ring: ring };
+
             if (status === 'repair') {
                 group.userData.animate = true;
             }
-            
+
             return group;
         }
-        
-        function createGrid() {
-            const gridHelper = new THREE.GridHelper(20, 20, 0x00d4ff, 0x003366);
+
+        function createGround() {
+            const gridHelper = new THREE.GridHelper(40, 40, 0x00d4ff, 0x003366);
             gridHelper.position.y = -2;
+            gridHelper.material.opacity = 0.3;
+            gridHelper.material.transparent = true;
             scene.add(gridHelper);
+
+            const planeGeometry = new THREE.PlaneGeometry(100, 100);
+            const planeMaterial = new THREE.MeshPhongMaterial({
+                color: 0x0a0a1a,
+                transparent: true,
+                opacity: 0.8
+            });
+            const plane = new THREE.Mesh(planeGeometry, planeMaterial);
+            plane.rotation.x = -Math.PI / 2;
+            plane.position.y = -2.01;
+            plane.receiveShadow = true;
+            scene.add(plane);
         }
-        
+
         function onMouseClick(event) {
             const rect = renderer.domElement.getBoundingClientRect();
             const mouse = new THREE.Vector2(
                 ((event.clientX - rect.left) / rect.width) * 2 - 1,
                 -((event.clientY - rect.top) / rect.height) * 2 + 1
             );
-            
+
             const raycaster = new THREE.Raycaster();
             raycaster.setFromCamera(mouse, camera);
-            
+
             const intersects = raycaster.intersectObjects(markers, true);
-            
+
             if (intersects.length > 0) {
                 let marker = intersects[0].object;
                 while (marker.parent && !marker.userData.name) {
@@ -561,89 +836,78 @@
                 }
             }
         }
-        
+
         function showPartDetail(part) {
             document.getElementById('popup-title').textContent = part.name;
-            document.getElementById('popup-content').innerHTML = `
-                <p style="margin-bottom: 10px;">
-                    <span style="color: ${part.status === 'repair' ? '#ff6b6b' : '#6bff6b'};">
-                        ${part.status === 'repair' ? '● 维修中' : '● 已完成'}
-                    </span>
-                </p>
-                <p style="font-size: 13px; line-height: 1.6;">${part.detail}</p>
-            `;
+            const statusEl = document.getElementById('popup-status');
+            statusEl.textContent = part.status === 'repair' ? '维修中' : '已完成';
+            statusEl.className = 'popup-status ' + part.status;
+            document.getElementById('popup-content').innerHTML = part.detail;
             document.getElementById('detail-popup').classList.add('show');
         }
-        
+
         function closePopup() {
             document.getElementById('detail-popup').classList.remove('show');
         }
-        
+
         function formatDate(dateStr) {
             if (!dateStr) return '待定';
-            
-            // 支持时间戳（数字或字符串）和日期字符串
             let date;
             if (/^\d+$/.test(dateStr)) {
-                // 纯数字，当作时间戳处理
                 date = new Date(parseInt(dateStr));
             } else {
-                // 其他格式，直接解析
                 date = new Date(dateStr);
             }
-            
-            // 检查日期是否有效
-            if (isNaN(date.getTime())) {
-                return '待定';
-            }
-            
+            if (isNaN(date.getTime())) return '待定';
             const year = date.getFullYear();
             const month = String(date.getMonth() + 1).padStart(2, '0');
             const day = String(date.getDate()).padStart(2, '0');
             return `${year}年${month}月${day}日`;
         }
-        
+
         function onWindowResize() {
             camera.aspect = window.innerWidth / window.innerHeight;
             camera.updateProjectionMatrix();
             renderer.setSize(window.innerWidth, window.innerHeight);
         }
-        
+
         let time = 0;
         function animate() {
             requestAnimationFrame(animate);
-            
-            time += 0.05;
-            
-            // 标记点动画
+            time += 0.02;
+
             markers.forEach(marker => {
                 if (marker.userData.animate) {
-                    marker.scale.setScalar(1 + Math.sin(time * 3) * 0.2);
+                    marker.scale.setScalar(1 + Math.sin(time * 3) * 0.15);
+                    if (marker.userData.ring) {
+                        marker.userData.ring.scale.setScalar(1 + Math.sin(time * 4) * 0.3);
+                        marker.userData.ring.material.opacity = 0.3 + Math.sin(time * 4) * 0.2;
+                        marker.userData.ring.lookAt(camera.position);
+                    }
                 }
             });
-            
+
             controls.update();
             renderer.render(scene, camera);
         }
-        
-        // 等待Three.js加载完成后初始化
+
         function waitForThreeJS() {
             if (typeof THREE !== 'undefined') {
                 init();
             } else {
-                // 如果Three.js还没加载完，等待100ms后重试
                 setTimeout(waitForThreeJS, 100);
             }
         }
-        
-        // 启动
+
         waitForThreeJS();
-        
-        // 暴露给父页面的接口
+
         window.setAircraftData = function(data) {
             if (data.no) document.getElementById('aircraft-no').textContent = data.no;
             if (data.model) document.getElementById('aircraft-model').textContent = data.model;
+            if (data.msn) document.getElementById('msn').textContent = data.msn;
+            if (data.engine) document.getElementById('engine').textContent = data.engine;
             if (data.inDate) document.getElementById('in-date').textContent = formatDate(data.inDate);
+            if (data.outDate) document.getElementById('out-date').textContent = formatDate(data.outDate);
         };
     </script>
 </body>
